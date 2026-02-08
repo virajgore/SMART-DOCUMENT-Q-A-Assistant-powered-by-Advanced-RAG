@@ -1,0 +1,28 @@
+import os
+import boto3
+
+s3 = boto3.client("s3")
+
+def upload_dir(local_dir, bucket, prefix):
+    for root, _, files in os.walk(local_dir):
+        for file in files:
+            local_path = os.path.join(root, file)
+            s3_key = os.path.join(prefix, os.path.relpath(local_path, local_dir))
+            s3.upload_file(local_path, bucket, s3_key)
+
+def download_dir(bucket, prefix, local_dir):
+    paginator = s3.get_paginator("list_objects_v2")
+    for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+        for obj in page.get("Contents", []):
+            rel_path = obj["Key"].replace(prefix, "")
+            local_path = os.path.join(local_dir, rel_path)
+            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+            s3.download_file(bucket, obj["Key"], local_path)
+
+def list_docs(bucket, base_prefix):
+    response = s3.list_objects_v2(
+        Bucket=bucket,
+        Prefix=base_prefix,
+        Delimiter="/"
+    )
+    return [p["Prefix"].split("/")[-2] for p in response.get("CommonPrefixes", [])]
