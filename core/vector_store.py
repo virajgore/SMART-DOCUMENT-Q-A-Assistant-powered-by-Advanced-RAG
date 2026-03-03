@@ -25,7 +25,6 @@ def load_faiss_from_s3(bucket, doc_ids, base_prefix):
         download_dir(bucket, f"{base_prefix}{doc_id}/", tmp)
         indexes.append(FAISS.load_local(tmp, embeddings))
 
-    # 🔥 MULTI-DOC MERGE
     base = indexes[0]
     for idx in indexes[1:]:
         base.merge_from(idx)
